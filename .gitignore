@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+*.pyo
+platform.db
+downloads/
+shorts/
+dubbed/
+monitor_state.json
+yt_cookies.txt
+rutube_cookies.txt
+.env
