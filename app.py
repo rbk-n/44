@@ -3507,12 +3507,27 @@ document.addEventListener('DOMContentLoaded', () => {
 """
 
 
-# ─── Entry point ────────────────────────────────────────────────────────────────
 if __name__ == "__main__":
-    init_db()
-    print("=" * 60)
-    print("  YT → Rutube Transfer Platform v4.0")
-    print("  http://0.0.0.0:5000")
-    print("  Default admin: admin / admin123")
-    print("=" * 60)
-    app.run(host="0.0.0.0", port=5000, debug=False)
+    print("\033[1;33m")
+    print(" ╔══════════════════════════════════════╗")
+    print(" ║  YT → Rutube Transfer Platform v5.0 ║")
+    print(" ║  Auth · Admin · AI Dub · Shorts      ║")
+    print(" ╚══════════════════════════════════════╝")
+    print("\033[0m")
+    try:
+        import flask
+    except ImportError:
+        print("  Installing Flask...")
+        subprocess.run([sys.executable, "-m", "pip", "install", "flask",
+                       "--break-system-packages", "-q"])
+    try:
+        import flask_sock
+    except ImportError:
+        subprocess.run([sys.executable, "-m", "pip", "install", "flask-sock",
+                       "--break-system-packages", "-q"])
+    print(f"  \033[1;32m✔\033[0m Open: \033[1;34mhttp://localhost:5000\033[0m")
+    print(f"  \033[1;33m⚠\033[0m Default admin: \033[1;31madmin / admin123\033[0m — change after first login!")
+    print(f"  Press Ctrl+C to stop\n")
+    import webbrowser, threading
+    threading.Timer(1.2, lambda: webbrowser.open("http://localhost:5000")).start()
+    app.run(host="0.0.0.0", port=5000, debug=False, threaded=True)
