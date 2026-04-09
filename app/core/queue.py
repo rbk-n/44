@@ -75,3 +75,8 @@ def enqueue_shorts_job(url: str, cfg: dict, user_id: int) -> str:
         target=run_shorts_transfer, args=(job_id, url, cfg, user_id), daemon=True
     ).start()
     return job_id
+
+# WebSocket clients registry (used by ws_handler in __init__.py)
+import threading as _threading
+ws_clients: set = set()
+ws_lock = _threading.Lock()

@@ -1,0 +1,303 @@
+{% extends "base.html" %}
+{% block title %}YT → Rutube{% endblock %}
+
+{% block body %}
+<!-- Header -->
+<header class="header">
+  <div class="logo"><span class="yt">YT</span><span class="arrow">→</span><span class="rt">Rutube</span></div>
+  <div class="header-right">
+    <div class="user-chip">
+      <div class="avatar">{{ user.username[0].upper() }}</div>
+      <span>{{ user.username }}</span>
+    </div>
+    {% if user.role == 'admin' %}
+    <a class="chip-btn admin" href="{{ url_for('admin.admin_panel') }}">⚙ Админ</a>
+    {% endif %}
+    <a class="chip-btn logout" href="{{ url_for('auth.logout') }}">Выйти</a>
+  </div>
+</header>
+
+<!-- Navigation -->
+<nav class="nav" id="main-nav">
+  <button class="nav-btn active" data-tab="transfer">📹 Перенос</button>
+  <button class="nav-btn" data-tab="dub">🎙 Дубляж</button>
+  <button class="nav-btn" data-tab="shorts">✂ Shorts</button>
+  <button class="nav-btn" data-tab="dashboard">📊 Live</button>
+  <button class="nav-btn" data-tab="batch">📦 Пакет</button>
+  <button class="nav-btn" data-tab="history">📜 История</button>
+  <button class="nav-btn" data-tab="monitor">👁 Мониторинг</button>
+  <button class="nav-btn" data-tab="settings">⚙ Настройки</button>
+</nav>
+
+<!-- ═══ TRANSFER ═══ -->
+<div class="tab-panel active" id="tab-transfer">
+  <div class="card">
+    <div class="field-label">YOUTUBE URL</div>
+    <div class="url-row">
+      <input type="text" id="yt-url" class="url-input drop-zone" placeholder="https://youtube.com/watch?v=..."
+             oninput="onUrlInput()" ondragover="event.preventDefault();this.classList.add('drag-over')"
+             ondragleave="this.classList.remove('drag-over')" ondrop="onDrop(event)">
+      <button class="btn btn-ghost icon-btn" id="paste-btn" onclick="pasteUrl()" title="Вставить">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M19 2h-4.18C14.4.84 13.3 0 12 0S9.6.84 9.18 2H5a2 2 0 00-2 2v16a2 2 0 002 2h14a2 2 0 002-2V4a2 2 0 00-2-2zm-7 0a1 1 0 110 2 1 1 0 010-2zm7 18H5V4h2v3h10V4h2v16z"/></svg>
+      </button>
+    </div>
+    <div class="preview-card" id="preview-card" style="display:none">
+      <div class="preview-inner">
+        <img class="preview-thumb" id="preview-thumb" src="" alt="">
+        <div class="preview-info">
+          <div class="preview-title" id="preview-title"></div>
+          <div class="preview-meta" id="preview-meta"></div>
+          <div class="preview-desc" id="preview-desc"></div>
+        </div>
+      </div>
+    </div>
+    <div class="btn-row" style="margin-top:16px">
+      <button class="btn btn-red" id="start-btn" onclick="startTransfer()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+        Начать перенос
+      </button>
+      <button class="btn btn-ghost" onclick="clearTransfer()">Очистить</button>
+    </div>
+  </div>
+
+  <div class="empty-state" id="transfer-empty">
+    <div class="empty-icon">✏</div>
+    <div class="empty-title">Перенеси видео на Rutube</div>
+    <div class="empty-sub">Вставь ссылку YouTube или перетащи её сюда. Мы перенесём видео со всеми метаданными, тегами и обложкой.</div>
+  </div>
+
+  <div class="card" id="job-card" style="display:none">
+    <div class="job-header">
+      <span class="job-id" id="job-id-display"></span>
+      <span class="status-badge" id="job-status-badge">В очереди</span>
+    </div>
+    <div class="progress-wrap" id="progress-wrap" style="display:none">
+      <div class="progress-bar" id="progress-bar"></div>
+    </div>
+    <div class="log-box" id="job-log"></div>
+    <div class="result-box" id="job-result" style="display:none"></div>
+  </div>
+</div>
+
+<!-- ═══ DUB ═══ -->
+<div class="tab-panel" id="tab-dub">
+  <div class="card">
+    <h3 style="margin-bottom:16px;font-size:14px;font-weight:600">🎙 AI-дубляж</h3>
+    <div class="field"><label>YouTube URL</label>
+      <input type="text" id="dub-url" placeholder="https://youtube.com/watch?v=..."></div>
+    <div class="field-row">
+      <div class="field"><label>Исходный язык</label>
+        <select id="dub-src-lang">
+          <option value="en">English</option><option value="ru">Русский</option>
+          <option value="es">Español</option><option value="de">Deutsch</option><option value="fr">Français</option>
+        </select></div>
+      <div class="field"><label>Язык озвучки</label>
+        <select id="dub-tgt-lang">
+          <option value="ru">Русский</option><option value="en">English</option>
+          <option value="es">Español</option><option value="de">Deutsch</option><option value="fr">Français</option>
+        </select></div>
+      <div class="field"><label>Модель Whisper</label>
+        <select id="dub-model">
+          <option value="base">base (быстро)</option><option value="small">small</option>
+          <option value="medium">medium (точнее)</option><option value="large">large (медленно)</option>
+        </select></div>
+    </div>
+    <div class="field">
+      <label>Громкость оригинала: <span id="dub-mix-val">15%</span></label>
+      <input type="range" id="dub-mix" min="0" max="100" value="15" class="slider">
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-blue" onclick="startDub()">🎙 Запустить дубляж</button>
+      <button class="btn btn-ghost" id="dub-install-btn" onclick="installDubDeps()" style="font-size:12px">Установить зависимости</button>
+    </div>
+    <div id="dub-install-status" style="margin-top:8px;font-size:12px;display:none"></div>
+  </div>
+  <div class="card" id="dub-job-card" style="display:none">
+    <div class="job-header">
+      <span class="job-id" id="dub-job-id"></span>
+      <span class="status-badge" id="dub-status-badge">В очереди</span>
+    </div>
+    <div class="progress-wrap" id="dub-progress-wrap" style="display:none">
+      <div class="progress-bar" id="dub-progress-bar"></div>
+    </div>
+    <div class="log-box" id="dub-log"></div>
+    <div id="dub-result" style="display:none;margin-top:12px"></div>
+  </div>
+</div>
+
+<!-- ═══ SHORTS ═══ -->
+<div class="tab-panel" id="tab-shorts">
+  <div class="card">
+    <h3 style="margin-bottom:16px;font-size:14px;font-weight:600">✂ Нарезка Shorts</h3>
+    <div class="field"><label>YouTube URL</label>
+      <input type="text" id="shorts-url" placeholder="https://youtube.com/watch?v=..."></div>
+    <div class="field-row">
+      <div class="field"><label>Стратегия</label>
+        <select id="shorts-strategy">
+          <option value="energy">По энергии аудио</option>
+          <option value="scene">По сценам</option>
+          <option value="uniform">Равномерно</option>
+        </select></div>
+      <div class="field"><label>Количество</label>
+        <input type="number" id="shorts-count" value="3" min="1" max="10"></div>
+      <div class="field"><label>Длительность: <span id="shorts-dur-val">58с</span></label>
+        <input type="range" id="shorts-duration" min="15" max="90" value="58" class="slider"></div>
+    </div>
+    <button class="btn btn-blue" onclick="startShorts()">✂ Нарезать Shorts</button>
+  </div>
+  <div class="card" id="shorts-job-card" style="display:none">
+    <div class="job-header">
+      <span class="job-id" id="shorts-job-id"></span>
+      <span class="status-badge" id="shorts-status-badge">В очереди</span>
+    </div>
+    <div class="progress-wrap" id="shorts-progress-wrap" style="display:none">
+      <div class="progress-bar" id="shorts-progress-bar"></div>
+    </div>
+    <div class="log-box" id="shorts-log"></div>
+    <div id="shorts-result" style="display:none;margin-top:12px"></div>
+  </div>
+</div>
+
+<!-- ═══ DASHBOARD ═══ -->
+<div class="tab-panel" id="tab-dashboard">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+    <h3 style="font-size:14px;font-weight:600">📊 Активные задачи</h3>
+    <div style="display:flex;gap:8px;align-items:center">
+      <span id="dash-queue-info" style="font-size:12px;color:var(--text2)"></span>
+      <button class="btn btn-ghost" style="font-size:12px" onclick="refreshDash()">↻ Обновить</button>
+    </div>
+  </div>
+  <div id="dash-jobs">
+    <div class="empty-state" style="padding:40px 0">
+      <div class="empty-icon">📊</div>
+      <div class="empty-title">Нет активных задач</div>
+      <div class="empty-sub">Запусти перенос — он появится здесь</div>
+    </div>
+  </div>
+  <div id="ws-indicator" style="font-size:11px;color:var(--text3);text-align:right;margin-top:8px">● offline</div>
+</div>
+
+<!-- ═══ BATCH ═══ -->
+<div class="tab-panel" id="tab-batch">
+  <div class="card">
+    <h3 style="margin-bottom:12px;font-size:14px;font-weight:600">📦 Пакетный перенос</h3>
+    <div class="field">
+      <label>По одному URL на строку</label>
+      <textarea id="batch-urls" rows="8" placeholder="https://youtube.com/watch?v=AAA&#10;https://youtube.com/watch?v=BBB&#10;https://youtu.be/CCC" style="width:100%;resize:vertical;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:10px;color:var(--text);font-family:var(--mono);font-size:12px;line-height:1.6"></textarea>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-red" onclick="startBatch()">▶ Запустить пакет</button>
+      <button class="btn btn-ghost" onclick="document.getElementById('batch-urls').value=''">Очистить</button>
+    </div>
+    <div id="batch-result" style="margin-top:12px;display:none"></div>
+  </div>
+</div>
+
+<!-- ═══ HISTORY ═══ -->
+<div class="tab-panel" id="tab-history">
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
+    <input type="text" id="history-search" placeholder="Поиск по названию или URL..." class="url-input" style="flex:1" oninput="searchHistory()">
+    <button class="btn btn-ghost" style="font-size:12px" onclick="clearHistory()">🗑 Очистить</button>
+  </div>
+  <div class="table-wrap">
+    <table class="data-table">
+      <thead><tr><th>Дата</th><th>Видео</th><th>Тип</th><th>Статус</th><th>Ссылка</th></tr></thead>
+      <tbody id="history-body">
+        <tr><td colspan="5" class="empty-cell">Загрузка...</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div id="history-pager" style="display:flex;gap:6px;margin-top:12px;justify-content:center"></div>
+</div>
+
+<!-- ═══ MONITOR ═══ -->
+<div class="tab-panel" id="tab-monitor">
+  <div class="card">
+    <h3 style="margin-bottom:12px;font-size:14px;font-weight:600">👁 Мониторинг каналов</h3>
+    <div class="url-row">
+      <input type="text" id="monitor-input" placeholder="https://youtube.com/@channel или ID канала" class="url-input">
+      <button class="btn btn-blue" onclick="addMonitorChannel()">+ Добавить</button>
+    </div>
+    <div id="monitor-status" style="font-size:12px;margin-top:8px;display:none"></div>
+  </div>
+  <div id="monitor-list" style="margin-top:4px">
+    <div class="empty-state" style="padding:40px 0">
+      <div class="empty-icon">👁</div>
+      <div class="empty-title">Нет отслеживаемых каналов</div>
+      <div class="empty-sub">Добавь канал — новые видео будут автоматически переноситься</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ SETTINGS ═══ -->
+<div class="tab-panel" id="tab-settings">
+  <div class="card" style="margin-bottom:14px">
+    <h3 style="margin-bottom:14px;font-size:13px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.06em">🍪 Cookies YouTube</h3>
+    <div class="field">
+      <label>Вставь содержимое файла cookies (Netscape формат)</label>
+      <textarea id="yt-cookie-text" rows="5" placeholder="# Netscape HTTP Cookie File&#10;.youtube.com TRUE / FALSE ..." class="cookie-area"></textarea>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-ghost" onclick="saveCookies('yt')">💾 Сохранить</button>
+      <span class="saved-badge" id="yt-cookie-saved">✓ Сохранено</span>
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:14px">
+    <h3 style="margin-bottom:14px;font-size:13px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.06em">🍪 Cookies Rutube</h3>
+    <div class="field">
+      <textarea id="rutube-cookie-text" rows="5" placeholder="# Netscape HTTP Cookie File&#10;.rutube.ru TRUE / FALSE ..." class="cookie-area"></textarea>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-ghost" onclick="saveCookies('rutube')">💾 Сохранить</button>
+      <span class="saved-badge" id="rutube-cookie-saved">✓ Сохранено</span>
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:14px">
+    <h3 style="margin-bottom:14px;font-size:13px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.06em">🔔 Telegram</h3>
+    <div class="toggle-row">
+      <label>Включить уведомления</label>
+      <label class="toggle"><input type="checkbox" id="tg-enabled"><span class="slider"></span></label>
+    </div>
+    <div class="field-row" style="margin-top:12px">
+      <div class="field"><label>Bot Token</label><input type="password" id="tg-token" placeholder="123456:ABC..."></div>
+      <div class="field"><label>Chat ID</label><input type="text" id="tg-chat-id" placeholder="-1001234567890"></div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-ghost" onclick="testTelegram()">📨 Тест</button>
+      <span id="tg-test-result" style="font-size:12px;display:none"></span>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3 style="margin-bottom:14px;font-size:13px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.06em">⚙ Загрузка</h3>
+    <div class="field-row">
+      <div class="field"><label>Качество видео</label>
+        <select id="settings-quality">
+          <option value="best">Лучшее</option><option value="1080p">1080p</option>
+          <option value="720p">720p</option><option value="480p">480p</option>
+        </select></div>
+      <div class="field"><label>Прокси</label>
+        <input type="text" id="settings-proxy" placeholder="http://host:port"></div>
+    </div>
+    <div class="toggle-row">
+      <label>Хранить скачанные файлы</label>
+      <label class="toggle"><input type="checkbox" id="settings-keep-files"><span class="slider"></span></label>
+    </div>
+    <div style="margin-top:18px">
+      <button class="btn btn-blue" onclick="saveSettings()">💾 Сохранить настройки</button>
+      <span id="settings-saved" class="saved-badge">✓ Сохранено</span>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast"></div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const CURRENT_USER = {{ user | tojson }};
+</script>
+<script src="{{ url_for('static', filename='js/app.js') }}"></script>
+{% endblock %}

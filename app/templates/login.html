@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}{% if mode == 'register' %}Регистрация{% else %}Вход{% endif %} — YT → Rutube{% endblock %}
+
+{% block body %}
+<div class="auth-wrap">
+  <div class="auth-logo">
+    <span class="yt">YT</span><span class="arrow">→</span><span class="rt">Rutube</span>
+    <span class="auth-sub">Transfer Platform</span>
+  </div>
+
+  <div class="auth-card">
+    <div class="auth-tabs">
+      <a href="{{ url_for('auth.login') }}" class="auth-tab {% if mode == 'login' %}active{% endif %}">Вход</a>
+      <a href="{{ url_for('auth.register') }}" class="auth-tab {% if mode == 'register' %}active{% endif %}">Регистрация</a>
+    </div>
+
+    {% if error %}
+    <div class="auth-error">{{ error }}</div>
+    {% endif %}
+
+    <form method="POST" class="auth-form">
+      <div class="field">
+        <label>Логин или Email</label>
+        <input type="text" name="username" placeholder="user@example.com" autocomplete="username" required>
+      </div>
+      {% if mode == 'register' %}
+      <div class="field">
+        <label>Email</label>
+        <input type="email" name="email" placeholder="your@email.com" autocomplete="email" required>
+      </div>
+      {% endif %}
+      <div class="field">
+        <label>Пароль</label>
+        <input type="password" name="password" placeholder="••••••••" autocomplete="{% if mode == 'register' %}new-password{% else %}current-password{% endif %}" required>
+      </div>
+      {% if mode == 'register' %}
+      <div class="field">
+        <label>Повтор пароля</label>
+        <input type="password" name="password2" placeholder="••••••••" autocomplete="new-password" required>
+      </div>
+      {% endif %}
+      <button type="submit" class="auth-btn">
+        {% if mode == 'register' %}Создать аккаунт{% else %}Войти{% endif %}
+      </button>
+    </form>
+  </div>
+</div>
+{% endblock %}

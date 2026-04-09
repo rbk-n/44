@@ -4,7 +4,12 @@ from datetime import datetime
 from pathlib import Path
 from werkzeug.security import generate_password_hash
 
-from config import Config
+try:
+    from config import Config
+except ImportError:
+    import sys, os
+    sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
+    from config import Config
 
 
 def get_db():
@@ -42,6 +47,8 @@ def default_config() -> dict:
 
 
 def init_db() -> None:
+    for _d in [Config.DOWNLOAD_DIR, Config.SHORTS_DIR, Config.DUBBED_DIR]:
+        Path(_d).mkdir(exist_ok=True)
     with get_db() as db:
         db.executescript("""
             CREATE TABLE IF NOT EXISTS users (
